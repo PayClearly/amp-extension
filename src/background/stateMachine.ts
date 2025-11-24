@@ -1,0 +1,268 @@
+import type { StateContext, Payment, PortalTemplate, ExtensionNotification } from '../shared/types';
+import { auth } from './auth';
+import { queueService, paymentService, portalLearningService, exceptionService } from '../shared/apiClient';
+import { evidence } from './evidence';
+import { telemetry } from './telemetry';
+import { createNotification } from '../shared/events';
+import { logger } from '../shared/logger';
+import { PaymentSchema } from '../shared/schemas';
+
+class StateMachine {
+  private context: StateContext = {
+    state: 'IDLE',
+    payment: null,
+    portalId: null,
+    pageKey: null,
+    template: null,
+    error: null,
+    timestamps: {
+      paymentReceivedAt: null,
+      firstPortalInteractionAt: null,
+      confirmationDetectedAt: null,
+      paymentCompletedAt: null,
+    },
+  };
+
+  private stopAfterNext = false;
+
+  async restore(): Promise<void> {
+    const result = await chrome.storage.session.get('stateContext');
+    if (result.stateContext) {
+      this.context = result.stateContext as StateContext;
+      logger.info('State restored', { state: this.context.state });
+    }
+  }
+
+  private async persist(): Promise<void> {
+    await chrome.storage.session.set({ stateContext: this.context });
+  }
+
+  private async transition(newState: StateContext['state']): Promise<void> {
+    this.context.state = newState;
+    await this.persist();
+    this.broadcastStateChange();
+  }
+
+  private broadcastStateChange(): void {
+    chrome.runtime.sendMessage({
+      type: 'STATE_CHANGED',
+      state: this.context.state,
+    }).catch(() => {
+      // Ignore errors (popup might not be open)
+    });
+  }
+
+  private emitNotification(notification: ExtensionNotification): void {
+    chrome.runtime.sendMessage({
+      type: 'NOTIFICATION',
+      notification,
+    }).catch(() => {
+      // Ignore errors
+    });
+  }
+
+  async handleGetNextPayment(): Promise<void> {
+    if (this.context.state !== 'IDLE') {
+      logger.warn('Cannot get next payment: not in IDLE state', {
+        currentState: this.context.state,
+      });
+      return;
+    }
+
+    await this.transition('FETCHING');
+    this.emitNotification(createNotification('FETCHING_PAYMENT'));
+
+    try {
+      // Ensure authenticated
+      if (!(await auth.isAuthenticated())) {
+        await auth.authenticate();
+      }
+
+      // Fetch next payment
+      const response = await queueService.getNextPayment(30000);
+      if (!response || !response.payment) {
+        // No payment available (long-poll timeout)
+        await this.transition('IDLE');
+        return;
+      }
+
+      const payment = PaymentSchema.parse(response.payment) as Payment;
+      this.context.payment = payment;
+      this.context.timestamps.paymentReceivedAt = new Date().toISOString();
+
+      // Fetch full payment details if needed
+      if (!payment.portalId || !payment.portalUrl) {
+        const fullPayment = await paymentService.getPayment(payment.id);
+        this.context.payment = PaymentSchema.parse(fullPayment) as Payment;
+      }
+
+      await this.transition('ACTIVE');
+      this.broadcastStateChange();
+
+      // Telemetry
+      await telemetry.logEvent({
+        eventType: 'payment_fetched',
+        timestamp: new Date().toISOString(),
+        paymentId: payment.id,
+        metadata: {
+          queuePosition: response.queuePosition,
+          estimatedWaitTime: response.estimatedWaitTime,
+        },
+      });
+
+      logger.info('Payment fetched', { paymentId: payment.id });
+    } catch (error) {
+      logger.error('Failed to fetch payment', error);
+      this.context.error = error instanceof Error ? error : new Error(String(error));
+      await this.transition('IDLE');
+      this.emitNotification(
+        createNotification('PAYMENT_FETCH_FAILED', {
+          paymentId: this.context.payment?.id,
+        })
+      );
+    }
+  }
+
+  async handleStopAfterNext(): Promise<void> {
+    this.stopAfterNext = true;
+    logger.info('Stop after next payment enabled');
+  }
+
+  async handleCreateException(paymentId: string, reason: string): Promise<void> {
+    try {
+      await exceptionService.createException(paymentId, reason);
+      this.context.payment = null;
+      await this.transition('IDLE');
+      this.emitNotification(createNotification('EXCEPTION_CREATED'));
+
+      await telemetry.logEvent({
+        eventType: 'exception_created',
+        timestamp: new Date().toISOString(),
+        paymentId,
+        metadata: { reason },
+      });
+
+      logger.info('Exception created', { paymentId, reason });
+    } catch (error) {
+      logger.error('Failed to create exception', error);
+      this.emitNotification(
+        createNotification('ERROR', {
+          humanMessage: 'Failed to create exception',
+        })
+      );
+    }
+  }
+
+  async handlePortalDetected(
+    portalId: string,
+    confidence: number,
+    pageKey: string
+  ): Promise<void> {
+    if (this.context.state !== 'ACTIVE') {
+      return;
+    }
+
+    this.context.portalId = portalId;
+    this.context.pageKey = pageKey;
+
+    if (!this.context.timestamps.firstPortalInteractionAt) {
+      this.context.timestamps.firstPortalInteractionAt = new Date().toISOString();
+    }
+
+    // Check for template
+    if (this.context.payment) {
+      try {
+        const template = await portalLearningService.getTemplate(
+          portalId,
+          this.context.payment.accountId,
+          this.context.payment.clientId,
+          this.context.payment.vendorId,
+          pageKey
+        );
+
+        if (template && template.confidence >= 0.7) {
+          this.context.template = template as PortalTemplate;
+          // Trigger autofill in content script
+          chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+            if (tabs[0]?.id) {
+              chrome.tabs.sendMessage(tabs[0].id, {
+                type: 'AUTOFILL',
+                template,
+                payment: this.context.payment,
+              });
+            }
+          });
+        } else {
+          // Learning mode
+          await this.transition('LEARNING');
+          this.emitNotification(createNotification('LEARNING_MODE'));
+        }
+      } catch (error) {
+        logger.error('Failed to get template', error);
+      }
+    }
+
+    await telemetry.logEvent({
+      eventType: 'portal_detected',
+      timestamp: new Date().toISOString(),
+      paymentId: this.context.payment?.id,
+      portalId,
+      pageKey,
+      metadata: { confidence },
+    });
+
+    await this.persist();
+  }
+
+  async handleConfirmationDetected(metadata: unknown): Promise<void> {
+    if (this.context.state !== 'ACTIVE' && this.context.state !== 'LEARNING') {
+      return;
+    }
+
+    this.context.timestamps.confirmationDetectedAt = new Date().toISOString();
+    await this.transition('COMPLETING');
+    this.emitNotification(createNotification('CAPTURING_EVIDENCE'));
+
+    try {
+      // Capture screenshot and upload evidence
+      await evidence.captureAndUpload(this.context.payment!.id, metadata);
+
+      this.context.timestamps.paymentCompletedAt = new Date().toISOString();
+
+      // Mark payment complete
+      // TODO: Call queue service to mark complete
+
+      // Clear state
+      this.context.payment = null;
+      this.context.portalId = null;
+      this.context.pageKey = null;
+      this.context.template = null;
+
+      this.emitNotification(createNotification('PAYMENT_COMPLETED'));
+
+      await telemetry.logEvent({
+        eventType: 'payment_completed',
+        timestamp: new Date().toISOString(),
+        paymentId: this.context.payment?.id,
+        metadata: {
+          timings: this.context.timestamps,
+        },
+      });
+
+      // Get next payment if not stopping
+      if (!this.stopAfterNext) {
+        await this.handleGetNextPayment();
+      } else {
+        this.stopAfterNext = false;
+        await this.transition('IDLE');
+      }
+    } catch (error) {
+      logger.error('Failed to complete payment', error);
+      this.emitNotification(createNotification('EVIDENCE_UPLOAD_FAILED'));
+      await this.transition('IDLE');
+    }
+  }
+}
+
+export const stateMachine = new StateMachine();
+

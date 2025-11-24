@@ -1,0 +1,231 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell,
+    sans-serif;
+  font-size: 14px;
+  width: 400px;
+  min-height: 500px;
+}
+
+.app {
+  padding: 16px;
+}
+
+.app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.app-header h1 {
+  font-size: 20px;
+  font-weight: 600;
+  color: #333;
+}
+
+.state-badge {
+  padding: 4px 8px;
+  border-radius: 4px;
+  background-color: #f0f0f0;
+  font-size: 12px;
+  text-transform: uppercase;
+  font-weight: 500;
+}
+
+.notifications {
+  margin-bottom: 16px;
+}
+
+.notification {
+  padding: 12px;
+  border-radius: 6px;
+  margin-bottom: 8px;
+  border-left: 4px solid;
+}
+
+.notification-error {
+  background-color: #fee;
+  border-color: #c00;
+  color: #800;
+}
+
+.notification-warning {
+  background-color: #ffe;
+  border-color: #fa0;
+  color: #840;
+}
+
+.notification-info {
+  background-color: #eef;
+  border-color: #08f;
+  color: #006;
+}
+
+.notification-success {
+  background-color: #efe;
+  border-color: #0a0;
+  color: #060;
+}
+
+.notification-action {
+  background-color: #eef;
+  border-color: #08f;
+  color: #006;
+  font-weight: 500;
+}
+
+.notification-message {
+  margin-bottom: 4px;
+}
+
+.notification-timestamp {
+  font-size: 11px;
+  opacity: 0.7;
+}
+
+.notification-history {
+  margin-top: 8px;
+  font-size: 12px;
+}
+
+.notification-history ul {
+  list-style: none;
+  padding-left: 0;
+}
+
+.notification-history li {
+  padding: 6px;
+  margin-bottom: 4px;
+  border-radius: 4px;
+}
+
+.payment-summary {
+  margin-bottom: 16px;
+  padding: 16px;
+  background-color: #f9f9f9;
+  border-radius: 6px;
+}
+
+.payment-summary h2 {
+  font-size: 16px;
+  margin-bottom: 12px;
+  color: #333;
+}
+
+.payment-details {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.detail-row .label {
+  font-weight: 500;
+  color: #666;
+}
+
+.detail-row .value {
+  color: #333;
+}
+
+.portal-link {
+  color: #08f;
+  text-decoration: none;
+}
+
+.portal-link:hover {
+  text-decoration: underline;
+}
+
+.empty-state {
+  text-align: center;
+  color: #999;
+  padding: 24px;
+}
+
+.controls {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.btn {
+  padding: 10px 16px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background-color: #08f;
+  color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: #07e;
+}
+
+.btn-secondary {
+  background-color: #f0f0f0;
+  color: #333;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background-color: #e0e0e0;
+}
+
+.btn-danger {
+  background-color: #c00;
+  color: white;
+}
+
+.btn-danger:hover:not(:disabled) {
+  background-color: #b00;
+}
+
+.auth-prompt {
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.auth-prompt h2 {
+  margin-bottom: 16px;
+  color: #333;
+}
+
+.auth-prompt button {
+  padding: 10px 20px;
+  background-color: #08f;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.auth-prompt button:hover {
+  background-color: #07e;
+}
+
