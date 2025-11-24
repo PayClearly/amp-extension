@@ -108,6 +108,36 @@ export const NOTIFICATION_CATALOG = {
     humanMessage: 'Portal detection failed. Please continue manually.',
     blocking: false,
   },
+  NO_PAYMENT_AVAILABLE: {
+    type: 'AUTO_ACTION_COMPLETE' as const,
+    messageKey: 'NO_PAYMENT_AVAILABLE',
+    humanMessage: 'No payment available in queue.',
+    blocking: false,
+  },
+  AUTOFILL_STARTING: {
+    type: 'AUTO_ACTION_IN_PROGRESS' as const,
+    messageKey: 'AUTOFILL_STARTING',
+    humanMessage: 'Auto-filling form...',
+    blocking: true,
+  },
+  AUTOFILL_FAILED: {
+    type: 'WARNING' as const,
+    messageKey: 'AUTOFILL_FAILED',
+    humanMessage: 'Autofill failed. Please fill form manually.',
+    blocking: false,
+  },
+  LEARNING_SUBMIT_FAILED: {
+    type: 'ERROR' as const,
+    messageKey: 'LEARNING_SUBMIT_FAILED',
+    humanMessage: 'Failed to save template. Please try again.',
+    blocking: false,
+  },
+  AUTOFILL_ERROR: {
+    type: 'ERROR' as const,
+    messageKey: 'AUTOFILL_ERROR',
+    humanMessage: 'Autofill encountered an error. Please fill form manually.',
+    blocking: false,
+  },
 };
 
 export function createNotification(

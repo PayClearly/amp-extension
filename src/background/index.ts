@@ -65,6 +65,28 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       });
       return true; // Keep channel open for async
 
+    case 'RESET_STATE':
+      stateMachine.handleResetState();
+      sendResponse({ success: true });
+      break;
+
+    case 'TRIGGER_AUTOFILL':
+      // Send message to content script in active tab to trigger autofill
+      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        if (tabs[0]?.id) {
+          chrome.tabs.sendMessage(tabs[0].id, { type: 'AUTOFILL_REQUEST' }).catch(() => {
+            logger.warn('Failed to send autofill request to content script');
+          });
+        }
+      });
+      sendResponse({ success: true });
+      break;
+
+    case 'TOGGLE_AUTO_FETCH':
+      stateMachine.setAutoFetchEnabled(message.enabled);
+      sendResponse({ success: true });
+      break;
+
     default:
       logger.warn('Unknown message type', { type: message.type });
       sendResponse({ success: false, error: 'Unknown message type' });

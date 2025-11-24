@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Portal - Payment</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, select {
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #0088ff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 10px;
+        }
+        button:hover {
+            background-color: #0077ee;
+        }
+        .info {
+            background-color: #f0f0f0;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        .payment-summary {
+            background-color: #e8f4f8;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Test Portal - Payment Form</h1>
+    <div class="info">
+        <strong>Test Page:</strong> This is a test payment form for extension testing.<br>
+        The extension should auto-fill this form when a template exists, or enter learning mode if not.
+    </div>
+
+    <div class="payment-summary">
+        <h3>Payment Summary</h3>
+        <p><strong>Vendor:</strong> Test Vendor Corp</p>
+        <p><strong>Amount:</strong> $1,234.56</p>
+        <p><strong>Invoice:</strong> INV-TEST-001</p>
+    </div>
+
+    <form id="paymentForm">
+        <div class="form-group">
+            <label for="amount-input">Payment Amount</label>
+            <input type="number" id="amount-input" name="amount" step="0.01" required>
+        </div>
+
+        <div class="form-group">
+            <label for="invoice-input">Invoice Number</label>
+            <input type="text" id="invoice-input" name="invoice" required>
+        </div>
+
+        <div class="form-group">
+            <label for="cardNumber">Card Number</label>
+            <input type="text" id="cardNumber" name="cardNumber" placeholder="4111 1111 1111 1111" required>
+        </div>
+
+        <div class="form-group">
+            <label for="expiry">Expiry Date</label>
+            <input type="text" id="expiry" name="expiry" placeholder="MM/YY" required>
+        </div>
+
+        <div class="form-group">
+            <label for="cvv">CVV</label>
+            <input type="text" id="cvv" name="cvv" maxlength="4" required>
+        </div>
+
+        <button type="submit">Submit Payment</button>
+    </form>
+
+    <script>
+        // Simulate SPA navigation to confirmation
+        document.getElementById('paymentForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            // Simulate navigation to confirmation page
+            window.location.href = 'confirmation.html';
+        });
+    </script>
+</body>
+</html>
+

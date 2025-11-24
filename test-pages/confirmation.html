@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Portal - Payment Confirmation</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .success-banner {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+        .confirmation-details {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #dee2e6;
+        }
+        .detail-row:last-child {
+            border-bottom: none;
+        }
+        .label {
+            font-weight: bold;
+            color: #495057;
+        }
+        .value {
+            color: #212529;
+        }
+        .info {
+            background-color: #fff3cd;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Payment Confirmation</h1>
+    <div class="info">
+        <strong>Test Page:</strong> This is a test confirmation page for extension testing.<br>
+        The extension should detect this as a confirmation page and capture evidence.
+    </div>
+
+    <div class="success-banner">
+        <h2>✓ Payment Successful!</h2>
+        <p>Your payment has been processed successfully.</p>
+    </div>
+
+    <div class="confirmation-details">
+        <h3>Payment Details</h3>
+
+        <div class="detail-row">
+            <span class="label">Confirmation Number:</span>
+            <span class="value">CONF-TEST-12345</span>
+        </div>
+
+        <div class="detail-row">
+            <span class="label">Transaction ID:</span>
+            <span class="value">TXN-TEST-67890</span>
+        </div>
+
+        <div class="detail-row">
+            <span class="label">Invoice Number:</span>
+            <span class="value">INV-TEST-001, INV-TEST-002</span>
+        </div>
+
+        <div class="detail-row">
+            <span class="label">Amount Paid:</span>
+            <span class="value">$1,234.56</span>
+        </div>
+
+        <div class="detail-row">
+            <span class="label">Payment Method:</span>
+            <span class="value">Virtual Card</span>
+        </div>
+
+        <div class="detail-row">
+            <span class="label">Date:</span>
+            <span class="value">12/24/2024</span>
+        </div>
+    </div>
+
+    <p><a href="payment.html">Make Another Payment</a></p>
+</body>
+</html>
+

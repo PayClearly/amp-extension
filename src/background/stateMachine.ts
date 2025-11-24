@@ -25,6 +25,7 @@ class StateMachine {
   };
 
   private stopAfterNext = false;
+  private autoFetchEnabled = true; // For testing: allow disabling auto-fetch
 
   async restore(): Promise<void> {
     const result = await chrome.storage.session.get('stateContext');
@@ -87,10 +88,7 @@ class StateMachine {
         // No payment available (long-poll timeout)
         await this.transition('IDLE');
         this.emitNotification(
-          createNotification('AUTO_ACTION_COMPLETE', {
-            messageKey: 'NO_PAYMENT_AVAILABLE',
-            humanMessage: 'No payment available in queue.',
-          })
+          createNotification('NO_PAYMENT_AVAILABLE')
         );
         return;
       }
@@ -137,6 +135,32 @@ class StateMachine {
     logger.info('Stop after next payment enabled');
   }
 
+  handleResetState(): void {
+    this.context = {
+      state: 'IDLE',
+      payment: null,
+      portalId: null,
+      pageKey: null,
+      template: null,
+      error: null,
+      timestamps: {
+        paymentReceivedAt: null,
+        firstPortalInteractionAt: null,
+        confirmationDetectedAt: null,
+        paymentCompletedAt: null,
+      },
+    };
+    this.stopAfterNext = false;
+    this.persist();
+    this.broadcastStateChange();
+    logger.info('State reset to IDLE');
+  }
+
+  setAutoFetchEnabled(enabled: boolean): void {
+    this.autoFetchEnabled = enabled;
+    logger.info('Auto-fetch enabled', { enabled });
+  }
+
   async handleCreateException(paymentId: string, reason: string): Promise<void> {
     try {
       await exceptionService.createException(paymentId, reason);
@@ -154,11 +178,13 @@ class StateMachine {
       logger.info('Exception created', { paymentId, reason });
     } catch (error) {
       logger.error('Failed to create exception', error);
-      this.emitNotification(
-        createNotification('ERROR', {
-          humanMessage: 'Failed to create exception',
-        })
-      );
+      this.emitNotification({
+        type: 'ERROR',
+        messageKey: 'EXCEPTION_CREATE_FAILED',
+        humanMessage: 'Failed to create exception',
+        timestamp: new Date().toISOString(),
+        blocking: true,
+      });
     }
   }
 
@@ -213,9 +239,7 @@ class StateMachine {
 
             // Emit notification that autofill will happen
             this.emitNotification(
-              createNotification('AUTO_ACTION_IN_PROGRESS', {
-                messageKey: 'AUTOFILL_STARTING',
-                humanMessage: 'Auto-filling form...',
+              createNotification('AUTOFILL_STARTING', {
                 paymentId: this.context.payment?.id,
                 portalId: portalId,
                 pageKey: pageKey,
@@ -278,8 +302,14 @@ class StateMachine {
     this.emitNotification(createNotification('CAPTURING_EVIDENCE'));
 
     try {
+      // Capture payment ID before clearing state
+      const paymentId = this.context.payment?.id;
+      if (!paymentId) {
+        throw new Error('No payment ID available');
+      }
+
       // Capture screenshot and upload evidence
-      await evidence.captureAndUpload(this.context.payment!.id, metadata);
+      await evidence.captureAndUpload(paymentId, metadata);
 
       this.context.timestamps.paymentCompletedAt = new Date().toISOString();
 
@@ -298,14 +328,14 @@ class StateMachine {
       await telemetry.logEvent({
         eventType: 'payment_completed',
         timestamp: new Date().toISOString(),
-        paymentId: this.context.payment?.id,
+        paymentId: paymentId,
         metadata: {
           timings: this.context.timestamps,
         },
       });
 
-      // Get next payment if not stopping
-      if (!this.stopAfterNext) {
+      // Get next payment if not stopping and auto-fetch is enabled
+      if (!this.stopAfterNext && this.autoFetchEnabled) {
         await this.handleGetNextPayment();
       } else {
         this.stopAfterNext = false;

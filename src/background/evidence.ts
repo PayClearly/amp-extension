@@ -63,7 +63,7 @@ class EvidenceService {
         `screenshot_${Date.now()}.png`
       );
 
-      if (!presignedResponse || !presignedResponse.url) {
+      if (!presignedResponse?.url) {
         throw new Error('Failed to get pre-signed URL');
       }
 

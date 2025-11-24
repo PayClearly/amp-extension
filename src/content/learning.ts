@@ -69,7 +69,7 @@ export async function submitLearning(payment: {
     logger.info('Template learned and submitted', {
       portalId: payment.portalId,
       pageKey,
-      templateId: response?.template?.id,
+      templateId: response.template?.id,
     });
 
     // Notify background of successful learning

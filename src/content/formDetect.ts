@@ -21,7 +21,7 @@ export async function detectFormFields(): Promise<FieldMapping[]> {
   return fields;
 }
 
-function identifyField(element: HTMLElement): FieldMapping | null {
+export function identifyField(element: HTMLElement): FieldMapping | null {
   // 1. Check label/for relationship
   const label = findLabel(element);
   if (label) {

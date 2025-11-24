@@ -78,7 +78,11 @@ export async function scrapeConfirmationMetadata(): Promise<ConfirmationMetadata
   const invoiceMatches = Array.from(bodyText.matchAll(invoicePattern));
   metadata.invoiceNumbers = invoiceMatches.map((m) => m[1]);
 
-  logger.info('Confirmation metadata scraped', metadata);
+  logger.info('Confirmation metadata scraped', {
+    confirmationNumber: metadata.confirmationNumber,
+    invoiceCount: metadata.invoiceNumbers.length,
+    amount: metadata.amount,
+  });
 
   return metadata;
 }

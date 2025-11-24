@@ -19,5 +19,7 @@ export const config = {
   templateConfidenceThreshold: parseFloat(
     process.env.TEMPLATE_CONFIDENCE_THRESHOLD_DEFAULT || '0.7'
   ),
+  // Obfuscation
+  obfuscationEnabled: true, // Can be toggled via operator preference
 };
 

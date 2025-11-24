@@ -15,6 +15,42 @@ export interface PortalPattern {
 // TODO: Load portal patterns from backend API or configuration file
 // Known portal patterns (can be extended or loaded from backend)
 const PORTAL_PATTERNS: PortalPattern[] = [
+  // Test portal patterns (for local testing)
+  {
+    portalId: 'portal_test',
+    patterns: [
+      {
+        host: /localhost/i,
+        path: /\/login/i,
+        pageKey: 'login',
+      },
+      {
+        host: /localhost/i,
+        path: /\/payment/i,
+        pageKey: 'payment_form',
+      },
+      {
+        host: /localhost/i,
+        path: /\/confirmation/i,
+        pageKey: 'confirmation',
+      },
+      {
+        host: /127\.0\.0\.1/i,
+        path: /\/login/i,
+        pageKey: 'login',
+      },
+      {
+        host: /127\.0\.0\.1/i,
+        path: /\/payment/i,
+        pageKey: 'payment_form',
+      },
+      {
+        host: /127\.0\.0\.1/i,
+        path: /\/confirmation/i,
+        pageKey: 'confirmation',
+      },
+    ],
+  },
   // Example patterns - replace with actual vendor portals
   // TODO: Add real vendor portal patterns based on production data
   {

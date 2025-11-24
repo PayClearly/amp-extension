@@ -1,6 +1,7 @@
 import { config } from './config';
 import { logger } from './logger';
 import { retryWithBackoff } from './retry';
+import type { Payment, PortalTemplate } from './types';
 import {
   MOCK_PAYMENT_RESPONSE,
   MOCK_PORTAL_TEMPLATE,
@@ -8,6 +9,22 @@ import {
   MOCK_PRESIGNED_URL_RESPONSE,
   mockDelay,
 } from './testData';
+
+// API Response types
+interface QueuePaymentResponse {
+  payment: Payment;
+  queuePosition?: number;
+  estimatedWaitTime?: number;
+}
+
+interface PortalTemplateResponse {
+  template: PortalTemplate;
+}
+
+interface PresignedUrlResponse {
+  url: string;
+  expiresAt?: string;
+}
 
 interface RequestOptions extends RequestInit {
   timeout?: number;
@@ -26,9 +43,9 @@ class ApiClient {
   ): Promise<T> {
     const { timeout = 30000, ...fetchOptions } = options;
 
-    const headers: HeadersInit = {
+    const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      ...fetchOptions.headers,
+      ...((fetchOptions.headers as Record<string, string>) || {}),
     };
 
     if (this.accessToken) {
@@ -103,12 +120,12 @@ export const apiClient = new ApiClient();
 
 // Helper functions for specific endpoints
 export const queueService = {
-  getNextPayment: async (timeout = 30000) => {
+  getNextPayment: async (timeout = 30000): Promise<QueuePaymentResponse | null> => {
     if (config.useTestData) {
       // TODO: Remove test data mock when real queue service is available
       logger.info('Using test data for queue service');
       await mockDelay();
-      return MOCK_PAYMENT_RESPONSE;
+      return MOCK_PAYMENT_RESPONSE as QueuePaymentResponse;
     }
 
     // TODO: Replace with actual queue service endpoint
@@ -117,7 +134,7 @@ export const queueService = {
 
     // Retry with exponential backoff: 3 retries, 1s/2s/4s delays with ±20% jitter
     return retryWithBackoff(
-      () => apiClient.get(url, { timeout }),
+      () => apiClient.get<QueuePaymentResponse>(url, { timeout }),
       {
         maxRetries: 3,
         initialDelay: 1000,
@@ -129,7 +146,7 @@ export const queueService = {
 };
 
 export const paymentService = {
-  getPayment: async (paymentId: string) => {
+  getPayment: async (paymentId: string): Promise<Payment> => {
     if (config.useTestData) {
       // TODO: Remove test data mock when real payment service is available
       logger.info('Using test data for payment service', { paymentId });
@@ -139,7 +156,7 @@ export const paymentService = {
 
     // TODO: Replace with actual payment service endpoint
     const url = `${config.paymentServiceUrl}/api/v1/payments/${paymentId}`;
-    return apiClient.get(url);
+    return apiClient.get<Payment>(url);
   },
 };
 
@@ -150,7 +167,7 @@ export const portalLearningService = {
     clientId: string,
     vendorId: string,
     pageKey = 'default'
-  ) => {
+  ): Promise<PortalTemplateResponse | null> => {
     if (config.useTestData) {
       // TODO: Remove test data mock when real portal learning service is available
       logger.info('Using test data for portal learning service', { portalId, pageKey });
@@ -170,9 +187,9 @@ export const portalLearningService = {
 
     // TODO: Replace with actual portal learning service endpoint
     const url = `${config.portalLearningServiceUrl}/api/v1/portals/templates?portalId=${portalId}&accountId=${accountId}&clientId=${clientId}&vendorId=${vendorId}&pageKey=${pageKey}`;
-    return apiClient.get(url);
+    return apiClient.get<PortalTemplateResponse | null>(url);
   },
-  createTemplate: async (template: unknown) => {
+  createTemplate: async (template: unknown): Promise<PortalTemplateResponse> => {
     if (config.useTestData) {
       // TODO: Remove test data mock when real portal learning service is available
       logger.info('Using test data for template creation');
@@ -182,9 +199,9 @@ export const portalLearningService = {
 
     // TODO: Replace with actual portal learning service endpoint
     const url = `${config.portalLearningServiceUrl}/api/v1/portals/templates`;
-    return apiClient.post(url, template);
+    return apiClient.post<PortalTemplateResponse>(url, template);
   },
-  updateUsage: async (templateId: string, success: boolean, fieldsFilled: number, totalFields: number) => {
+  updateUsage: async (templateId: string, success: boolean, fieldsFilled: number, totalFields: number): Promise<{ success: boolean }> => {
     if (config.useTestData) {
       // TODO: Remove test data mock when real portal learning service is available
       logger.info('Using test data for template usage update', { templateId, success });
@@ -194,7 +211,7 @@ export const portalLearningService = {
 
     // TODO: Replace with actual portal learning service endpoint
     const url = `${config.portalLearningServiceUrl}/api/v1/portals/templates/${templateId}/usage`;
-    return apiClient.put(url, { success, fieldsFilled, totalFields });
+    return apiClient.put<{ success: boolean }>(url, { success, fieldsFilled, totalFields });
   },
 };
 
@@ -214,7 +231,7 @@ export const exceptionService = {
 };
 
 export const evidenceService = {
-  getPresignedUrl: async (paymentId: string, filename: string) => {
+  getPresignedUrl: async (paymentId: string, filename: string): Promise<PresignedUrlResponse> => {
     if (config.useTestData) {
       // TODO: Remove test data mock when real evidence service is available
       logger.info('Using test data for evidence service (presigned URL)', { paymentId, filename });
@@ -224,9 +241,9 @@ export const evidenceService = {
 
     // TODO: Replace with actual evidence service endpoint
     const url = `${config.evidenceServiceUrl}/api/v1/evidence/presigned-url`;
-    return apiClient.post(url, { paymentId, filename });
+    return apiClient.post<PresignedUrlResponse>(url, { paymentId, filename });
   },
-  uploadMetadata: async (paymentId: string, metadata: unknown) => {
+  uploadMetadata: async (paymentId: string, metadata: unknown): Promise<{ success: boolean; evidenceId?: string }> => {
     if (config.useTestData) {
       // TODO: Remove test data mock when real evidence service is available
       logger.info('Using test data for evidence service (metadata upload)', { paymentId });
@@ -236,7 +253,7 @@ export const evidenceService = {
 
     // TODO: Replace with actual evidence service endpoint
     const url = `${config.evidenceServiceUrl}/api/v1/evidence/${paymentId}/metadata`;
-    return apiClient.post(url, metadata);
+    return apiClient.post<{ success: boolean; evidenceId?: string }>(url, metadata);
   },
 };
 

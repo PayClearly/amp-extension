@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Extension Test Pages</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .page-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+        .page-card {
+            border: 2px solid #0088ff;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+        }
+        .page-card h2 {
+            margin-top: 0;
+            color: #0088ff;
+        }
+        .page-card a {
+            display: inline-block;
+            background-color: #0088ff;
+            color: white;
+            padding: 10px 20px;
+            text-decoration: none;
+            border-radius: 4px;
+            margin-top: 10px;
+        }
+        .page-card a:hover {
+            background-color: #0077ee;
+        }
+        .instructions {
+            background-color: #e8f4f8;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>PayClearly Extension Test Pages</h1>
+
+    <div class="instructions">
+        <h2>Testing Instructions</h2>
+        <ol>
+            <li>Open the extension popup and click "Sign In" (uses test data)</li>
+            <li>Click "Get Next Payment" to fetch a test payment</li>
+            <li>Navigate to the test pages below to test different flows:</li>
+            <ul>
+                <li><strong>Login:</strong> Test portal detection on login page</li>
+                <li><strong>Payment:</strong> Test form detection, autofill, and learning mode</li>
+                <li><strong>Confirmation:</strong> Test confirmation detection and evidence capture</li>
+            </ul>
+            <li>Check the extension popup for notifications and state changes</li>
+            <li>Check browser console (background service worker) for logs</li>
+        </ol>
+    </div>
+
+    <div class="page-list">
+        <div class="page-card">
+            <h2>Login Page</h2>
+            <p>Test portal detection on a login page</p>
+            <a href="login.html">Open Login Page</a>
+        </div>
+
+        <div class="page-card">
+            <h2>Payment Form</h2>
+            <p>Test form detection, autofill, and learning mode</p>
+            <a href="payment.html">Open Payment Form</a>
+        </div>
+
+        <div class="page-card">
+            <h2>Confirmation</h2>
+            <p>Test confirmation detection and evidence capture</p>
+            <a href="confirmation.html">Open Confirmation</a>
+        </div>
+    </div>
+
+    <div style="margin-top: 40px; padding: 15px; background-color: #fff3cd; border-radius: 4px;">
+        <h3>Test Data Used by Extension</h3>
+        <ul>
+            <li><strong>Payment Amount:</strong> $1,234.56</li>
+            <li><strong>Invoice Numbers:</strong> INV-TEST-001, INV-TEST-002</li>
+            <li><strong>Card Number:</strong> 4111111111111111</li>
+            <li><strong>Expiry:</strong> 12/25</li>
+            <li><strong>CVV:</strong> 123</li>
+        </ul>
+        <p><small>The extension will auto-fill these values when a template exists, or capture them in learning mode.</small></p>
+    </div>
+</body>
+</html>
+

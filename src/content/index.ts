@@ -2,13 +2,14 @@ import { detectPortal } from './portalDetect';
 import { detectFormFields } from './formDetect';
 import { autofillForm } from './autofill';
 import { startLearningMode, submitLearning } from './learning';
-import { obfuscateSensitiveFields } from './obfuscate';
+import { obfuscateSensitiveFields, restoreAllObfuscatedFields } from './obfuscate';
 import { detectConfirmation, scrapeConfirmationMetadata } from './scrape';
 import { logger } from '../shared/logger';
 import type { Payment, PortalTemplate } from '../shared/types';
 
-let portalDetected = false;
-let currentPortalId: string | null = null;
+// Track portal detection state (used for debugging/logging)
+// let portalDetected = false;
+// let currentPortalId: string | null = null;
 
 // Wait for DOM to be ready
 if (document.readyState === 'loading') {
@@ -23,8 +24,8 @@ async function init(): Promise<void> {
   // Detect portal
   const portal = await detectPortal();
   if (portal) {
-    portalDetected = true;
-    currentPortalId = portal.portalId;
+    // portalDetected = true;
+    // currentPortalId = portal.portalId;
 
     // Notify background
     chrome.runtime.sendMessage({
@@ -66,8 +67,8 @@ async function init(): Promise<void> {
       logger.info('Navigation detected', { url: lastUrl });
 
       // Reset portal detection state
-      portalDetected = false;
-      currentPortalId = null;
+      // portalDetected = false;
+      // currentPortalId = null;
 
       // Re-detect portal after navigation (debounced)
       if (navigationCheckTimeout) {
@@ -76,8 +77,8 @@ async function init(): Promise<void> {
       navigationCheckTimeout = window.setTimeout(() => {
         detectPortal().then((portal) => {
           if (portal) {
-            portalDetected = true;
-            currentPortalId = portal.portalId;
+            // portalDetected = true;
+            // currentPortalId = portal.portalId;
             chrome.runtime.sendMessage({
               type: 'PORTAL_DETECTED',
               portalId: portal.portalId,
@@ -128,6 +129,17 @@ async function init(): Promise<void> {
 
   // Check for confirmation every 5 seconds
   setInterval(checkConfirmation, 5000);
+
+  // Intercept form submissions to restore obfuscated fields
+  // This ensures portal validation works correctly
+  document.addEventListener('submit', (e) => {
+    const form = e.target as HTMLFormElement;
+    if (form && form.tagName === 'FORM') {
+      // Restore obfuscated fields before submission
+      restoreAllObfuscatedFields(form);
+      logger.debug('Form submission intercepted, restored obfuscated fields');
+    }
+  }, true); // Use capture phase to intercept before form validation
 }
 
 async function handleMessage(message: unknown): Promise<void> {
@@ -175,6 +187,33 @@ async function handleMessage(message: unknown): Promise<void> {
             accountId: payment.accountId,
             clientId: payment.clientId,
             vendorId: payment.vendorId,
+          });
+        }
+      });
+      break;
+
+    case 'AUTOFILL_REQUEST':
+      // Manual autofill trigger (for testing)
+      chrome.storage.session.get('stateContext', async (result) => {
+        const stateContext = result.stateContext;
+        if (stateContext?.payment && stateContext?.template) {
+          const payment = stateContext.payment as Payment;
+          const template = stateContext.template as PortalTemplate;
+          logger.info('Manual autofill triggered');
+          await autofillForm(payment, template);
+        } else {
+          logger.warn('Cannot autofill: missing payment or template', {
+            hasPayment: !!stateContext?.payment,
+            hasTemplate: !!stateContext?.template,
+          });
+          chrome.runtime.sendMessage({
+            type: 'NOTIFICATION',
+            notification: {
+              type: 'WARNING',
+              messageKey: 'AUTOFILL_ERROR',
+              humanMessage: 'Cannot autofill: No payment or template available. Fetch a payment first.',
+              timestamp: new Date().toISOString(),
+            },
           });
         }
       });

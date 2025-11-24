@@ -162,6 +162,12 @@ body {
   gap: 8px;
 }
 
+.controls-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .btn {
   padding: 10px 16px;
   border: none;

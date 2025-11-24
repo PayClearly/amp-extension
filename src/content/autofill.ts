@@ -83,9 +83,7 @@ export async function autofillForm(
   } else {
     chrome.runtime.sendMessage({
       type: 'NOTIFICATION',
-      notification: createNotification('WARNING', {
-        messageKey: 'AUTOFILL_FAILED',
-        humanMessage: 'Autofill failed. Please fill form manually.',
+      notification: createNotification('AUTOFILL_FAILED', {
         paymentId: payment.id,
         portalId: template.portalId,
         pageKey: template.pageKey,
