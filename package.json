@@ -6,7 +6,9 @@
   "scripts": {
     "build": "webpack --mode production",
     "build:dev": "webpack --mode development",
+    "build:test": "USE_TEST_DATA=true webpack --mode development",
     "watch": "webpack --mode development --watch",
+    "watch:test": "USE_TEST_DATA=true webpack --mode development --watch",
     "lint": "eslint src --ext .ts,.tsx",
     "lint:fix": "eslint src --ext .ts,.tsx --fix",
     "format": "prettier --write \"src/**/*.{ts,tsx,json}\"",
@@ -43,4 +45,3 @@
     "webpack-cli": "^5.1.4"
   }
 }
-

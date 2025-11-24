@@ -1,4 +1,8 @@
+// Test mode flag - set USE_TEST_DATA=true to enable mock data
+const USE_TEST_DATA = process.env.USE_TEST_DATA === 'true' || process.env.NODE_ENV === 'development';
+
 export const config = {
+  useTestData: USE_TEST_DATA,
   authServiceUrl: process.env.AUTH_SERVICE_URL || '',
   queueServiceUrl: process.env.QUEUE_SERVICE_URL || '',
   paymentServiceUrl: process.env.PAYMENT_SERVICE_URL || '',

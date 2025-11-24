@@ -2,6 +2,9 @@ import type { ConfirmationMetadata } from '../shared/types';
 import { logger } from '../shared/logger';
 
 export async function detectConfirmation(): Promise<boolean> {
+  // TODO: Enhance confirmation detection with more sophisticated patterns
+  // May need portal-specific confirmation detection based on learned templates
+
   // Check URL patterns
   if (window.location.href.match(/confirm|success|complete|thank.*you/i)) {
     return true;
@@ -26,6 +29,9 @@ export async function detectConfirmation(): Promise<boolean> {
 }
 
 export async function scrapeConfirmationMetadata(): Promise<ConfirmationMetadata> {
+  // TODO: Enhance metadata scraping with template-based selectors
+  // Current implementation uses heuristics - should use learned template selectors when available
+
   const metadata: ConfirmationMetadata = {
     confirmationNumber: null,
     invoiceNumbers: [],

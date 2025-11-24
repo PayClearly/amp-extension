@@ -5,6 +5,7 @@ import { startLearningMode, submitLearning } from './learning';
 import { obfuscateSensitiveFields } from './obfuscate';
 import { detectConfirmation, scrapeConfirmationMetadata } from './scrape';
 import { logger } from '../shared/logger';
+import type { Payment, PortalTemplate } from '../shared/types';
 
 let portalDetected = false;
 let currentPortalId: string | null = null;
@@ -134,17 +135,49 @@ async function handleMessage(message: unknown): Promise<void> {
     return;
   }
 
-  const msg = message as { type: string; [key: string]: unknown };
+  const msg = message as { type: string;[key: string]: unknown };
 
   switch (msg.type) {
     case 'AUTOFILL':
       if (msg.template && msg.payment) {
-        await autofillForm(msg.payment, msg.template);
+        try {
+          const result = await autofillForm(msg.payment as Payment, msg.template as PortalTemplate);
+          logger.info('Autofill handled', result);
+        } catch (error) {
+          logger.error('Autofill failed', error);
+          chrome.runtime.sendMessage({
+            type: 'NOTIFICATION',
+            notification: {
+              type: 'ERROR',
+              messageKey: 'AUTOFILL_ERROR',
+              humanMessage: 'Autofill encountered an error. Please fill form manually.',
+              timestamp: new Date().toISOString(),
+            },
+          });
+        }
       }
       break;
 
     case 'START_LEARNING':
       startLearningMode();
+      logger.info('Learning mode started via message');
+      break;
+
+    case 'SUBMIT_LEARNING':
+      // TODO: Get payment data from background state
+      // For now, try to get from storage
+      chrome.storage.session.get('stateContext', async (result) => {
+        const stateContext = result.stateContext;
+        if (stateContext?.payment) {
+          const payment = stateContext.payment;
+          await submitLearning({
+            portalId: stateContext.portalId || 'unknown',
+            accountId: payment.accountId,
+            clientId: payment.clientId,
+            vendorId: payment.vendorId,
+          });
+        }
+      });
       break;
 
     default:

@@ -52,6 +52,8 @@ module.exports = (env, argv) => {
         ],
       }),
       new webpack.DefinePlugin({
+        'process.env.USE_TEST_DATA': JSON.stringify(process.env.USE_TEST_DATA || 'false'),
+        'process.env.NODE_ENV': JSON.stringify(argv.mode || 'development'),
         'process.env.AUTH_SERVICE_URL': JSON.stringify(process.env.AUTH_SERVICE_URL || ''),
         'process.env.QUEUE_SERVICE_URL': JSON.stringify(process.env.QUEUE_SERVICE_URL || ''),
         'process.env.PAYMENT_SERVICE_URL': JSON.stringify(process.env.PAYMENT_SERVICE_URL || ''),

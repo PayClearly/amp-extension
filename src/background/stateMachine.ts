@@ -6,6 +6,7 @@ import { telemetry } from './telemetry';
 import { createNotification } from '../shared/events';
 import { logger } from '../shared/logger';
 import { PaymentSchema } from '../shared/schemas';
+import { config } from '../shared/config';
 
 class StateMachine {
   private context: StateContext = {
@@ -188,22 +189,67 @@ class StateMachine {
           pageKey
         );
 
-        if (template && template.confidence >= 0.7) {
-          this.context.template = template as PortalTemplate;
-          // Trigger autofill in content script
+        // Handle both response formats: { template: {...} } or direct template object
+        const portalTemplate = (template?.template || template) as PortalTemplate | null;
+
+        if (portalTemplate) {
+
+          // Check confidence threshold
+          if (portalTemplate.confidence >= config.templateConfidenceThreshold) {
+            this.context.template = portalTemplate;
+
+            // Trigger autofill in content script
+            chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+              if (tabs[0]?.id) {
+                chrome.tabs.sendMessage(tabs[0].id, {
+                  type: 'AUTOFILL',
+                  template: portalTemplate,
+                  payment: this.context.payment,
+                }).catch((error) => {
+                  logger.error('Failed to send autofill message to content script', error);
+                });
+              }
+            });
+
+            // Emit notification that autofill will happen
+            this.emitNotification(
+              createNotification('AUTO_ACTION_IN_PROGRESS', {
+                messageKey: 'AUTOFILL_STARTING',
+                humanMessage: 'Auto-filling form...',
+                paymentId: this.context.payment?.id,
+                portalId: portalId,
+                pageKey: pageKey,
+              })
+            );
+          } else {
+            // Template exists but confidence too low
+            await this.transition('TEMPLATE_MISMATCH');
+            this.emitNotification(
+              createNotification('TEMPLATE_LOW_CONFIDENCE', {
+                paymentId: this.context.payment?.id,
+                portalId: portalId,
+                confidence: portalTemplate.confidence,
+              })
+            );
+          }
+        } else {
+          // No template found - learning mode
+          await this.transition('LEARNING');
+          this.emitNotification(createNotification('LEARNING_MODE', {
+            paymentId: this.context.payment?.id,
+            portalId: portalId,
+          }));
+
+          // Notify content script to start learning mode
           chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
             if (tabs[0]?.id) {
               chrome.tabs.sendMessage(tabs[0].id, {
-                type: 'AUTOFILL',
-                template,
-                payment: this.context.payment,
+                type: 'START_LEARNING',
+              }).catch((error) => {
+                logger.error('Failed to send learning mode message', error);
               });
             }
           });
-        } else {
-          // Learning mode
-          await this.transition('LEARNING');
-          this.emitNotification(createNotification('LEARNING_MODE'));
         }
       } catch (error) {
         logger.error('Failed to get template', error);
@@ -237,8 +283,9 @@ class StateMachine {
 
       this.context.timestamps.paymentCompletedAt = new Date().toISOString();
 
-      // Mark payment complete
-      // TODO: Call queue service to mark complete
+      // TODO: Call queue service to mark payment complete
+      // Endpoint: PUT /api/v1/queue/payments/{paymentId}/complete
+      // Should include evidence URL and metadata in request body
 
       // Clear state
       this.context.payment = null;

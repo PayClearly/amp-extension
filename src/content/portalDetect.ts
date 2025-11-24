@@ -68,7 +68,8 @@ async function matchDomFingerprint(
   fingerprint: string
 ): Promise<{ portalId: string; pageKey: string; confidence: number } | null> {
   // TODO: Check against known fingerprints from Portal Learning Service
-  // For now, return null
+  // Should query backend API with fingerprint hash to find matching portal
+  // For now, return null (relies on URL patterns or payment portalId)
   return null;
 }
 

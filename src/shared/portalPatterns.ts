@@ -12,9 +12,11 @@ export interface PortalPattern {
   }>;
 }
 
+// TODO: Load portal patterns from backend API or configuration file
 // Known portal patterns (can be extended or loaded from backend)
 const PORTAL_PATTERNS: PortalPattern[] = [
   // Example patterns - replace with actual vendor portals
+  // TODO: Add real vendor portal patterns based on production data
   {
     portalId: 'portal_example',
     patterns: [
@@ -93,7 +95,9 @@ function inferPageKeyFromUrl(url: string): string {
  * Load portal patterns from backend (future enhancement)
  */
 export async function loadPortalPatterns(): Promise<PortalPattern[]> {
-  // TODO: Fetch from backend API
+  // TODO: Fetch from backend API endpoint (e.g., /api/v1/portals/patterns)
+  // Should cache patterns in chrome.storage.local and refresh periodically
+  // For now, return static patterns
   return PORTAL_PATTERNS;
 }
 

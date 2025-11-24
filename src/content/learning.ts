@@ -38,11 +38,14 @@ export async function submitLearning(payment: {
   vendorId: string;
 }): Promise<void> {
   if (!learningMode || capturedFields.length === 0) {
+    logger.warn('Learning mode inactive or no fields captured');
     return;
   }
 
   const pageKey = inferPageKey();
 
+  // TODO: Validate that no sensitive data is included in learning payload
+  // Ensure only selectors, semantic types, and labels are captured (no actual values)
   const payload = {
     portalId: payment.portalId,
     accountId: payment.accountId,
@@ -62,10 +65,44 @@ export async function submitLearning(payment: {
   };
 
   try {
-    await portalLearningService.createTemplate(payload);
-    logger.info('Template learned and submitted', { portalId: payment.portalId, pageKey });
+    const response = await portalLearningService.createTemplate(payload);
+    logger.info('Template learned and submitted', {
+      portalId: payment.portalId,
+      pageKey,
+      templateId: response?.template?.id,
+    });
+
+    // Notify background of successful learning
+    chrome.runtime.sendMessage({
+      type: 'NOTIFICATION',
+      notification: {
+        type: 'AUTO_ACTION_COMPLETE',
+        messageKey: 'TEMPLATE_LEARNED',
+        humanMessage: 'Template learned successfully. Will be used for future payments.',
+        paymentId: payment.portalId, // Using portalId as identifier
+        portalId: payment.portalId,
+        pageKey: pageKey,
+        timestamp: new Date().toISOString(),
+      },
+    }).catch(() => {
+      // Ignore notification errors
+    });
   } catch (error) {
     logger.error('Failed to submit learning', error);
+
+    // Notify background of learning failure
+    chrome.runtime.sendMessage({
+      type: 'NOTIFICATION',
+      notification: {
+        type: 'ERROR',
+        messageKey: 'LEARNING_SUBMIT_FAILED',
+        humanMessage: 'Failed to save template. Please try again.',
+        timestamp: new Date().toISOString(),
+      },
+    }).catch(() => {
+      // Ignore notification errors
+    });
+
     throw error;
   }
 

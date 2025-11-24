@@ -72,6 +72,8 @@ function identifyField(element: HTMLElement): FieldMapping | null {
 }
 
 function inferSemanticType(text: string): FieldMapping['semanticType'] | null {
+  // TODO: Enhance semantic type inference with ML or more sophisticated pattern matching
+  // Current implementation uses basic regex patterns - may need refinement based on real portal data
   const lower = text.toLowerCase();
   if (lower.match(/amount|total|payment|price|cost/)) return 'amount';
   if (lower.match(/invoice|inv#|invoice number/)) return 'invoice_number';

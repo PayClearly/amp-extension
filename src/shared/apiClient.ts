@@ -1,6 +1,13 @@
 import { config } from './config';
 import { logger } from './logger';
 import { retryWithBackoff } from './retry';
+import {
+  MOCK_PAYMENT_RESPONSE,
+  MOCK_PORTAL_TEMPLATE,
+  MOCK_TOKEN_RESPONSE,
+  MOCK_PRESIGNED_URL_RESPONSE,
+  mockDelay,
+} from './testData';
 
 interface RequestOptions extends RequestInit {
   timeout?: number;
@@ -97,6 +104,15 @@ export const apiClient = new ApiClient();
 // Helper functions for specific endpoints
 export const queueService = {
   getNextPayment: async (timeout = 30000) => {
+    if (config.useTestData) {
+      // TODO: Remove test data mock when real queue service is available
+      logger.info('Using test data for queue service');
+      await mockDelay();
+      return MOCK_PAYMENT_RESPONSE;
+    }
+
+    // TODO: Replace with actual queue service endpoint
+    // Real implementation: Long-poll queue service endpoint
     const url = `${config.queueServiceUrl}/api/v1/queue/next-payment?timeout=${Math.min(timeout / 1000, 60)}`;
 
     // Retry with exponential backoff: 3 retries, 1s/2s/4s delays with ±20% jitter
@@ -114,6 +130,14 @@ export const queueService = {
 
 export const paymentService = {
   getPayment: async (paymentId: string) => {
+    if (config.useTestData) {
+      // TODO: Remove test data mock when real payment service is available
+      logger.info('Using test data for payment service', { paymentId });
+      await mockDelay();
+      return MOCK_PAYMENT_RESPONSE.payment;
+    }
+
+    // TODO: Replace with actual payment service endpoint
     const url = `${config.paymentServiceUrl}/api/v1/payments/${paymentId}`;
     return apiClient.get(url);
   },
@@ -127,14 +151,48 @@ export const portalLearningService = {
     vendorId: string,
     pageKey = 'default'
   ) => {
+    if (config.useTestData) {
+      // TODO: Remove test data mock when real portal learning service is available
+      logger.info('Using test data for portal learning service', { portalId, pageKey });
+      await mockDelay();
+      // Return template if it matches test data, otherwise return null (no template)
+      if (
+        portalId === MOCK_PORTAL_TEMPLATE.portalId &&
+        accountId === MOCK_PORTAL_TEMPLATE.accountId &&
+        clientId === MOCK_PORTAL_TEMPLATE.clientId &&
+        vendorId === MOCK_PORTAL_TEMPLATE.vendorId &&
+        pageKey === MOCK_PORTAL_TEMPLATE.pageKey
+      ) {
+        return { template: MOCK_PORTAL_TEMPLATE };
+      }
+      return null; // No template found (simulates learning mode)
+    }
+
+    // TODO: Replace with actual portal learning service endpoint
     const url = `${config.portalLearningServiceUrl}/api/v1/portals/templates?portalId=${portalId}&accountId=${accountId}&clientId=${clientId}&vendorId=${vendorId}&pageKey=${pageKey}`;
     return apiClient.get(url);
   },
   createTemplate: async (template: unknown) => {
+    if (config.useTestData) {
+      // TODO: Remove test data mock when real portal learning service is available
+      logger.info('Using test data for template creation');
+      await mockDelay();
+      return { template: { ...MOCK_PORTAL_TEMPLATE, id: `template_${Date.now()}` } };
+    }
+
+    // TODO: Replace with actual portal learning service endpoint
     const url = `${config.portalLearningServiceUrl}/api/v1/portals/templates`;
     return apiClient.post(url, template);
   },
   updateUsage: async (templateId: string, success: boolean, fieldsFilled: number, totalFields: number) => {
+    if (config.useTestData) {
+      // TODO: Remove test data mock when real portal learning service is available
+      logger.info('Using test data for template usage update', { templateId, success });
+      await mockDelay();
+      return { success: true };
+    }
+
+    // TODO: Replace with actual portal learning service endpoint
     const url = `${config.portalLearningServiceUrl}/api/v1/portals/templates/${templateId}/usage`;
     return apiClient.put(url, { success, fieldsFilled, totalFields });
   },
@@ -142,6 +200,14 @@ export const portalLearningService = {
 
 export const exceptionService = {
   createException: async (paymentId: string, reason: string) => {
+    if (config.useTestData) {
+      // TODO: Remove test data mock when real exception service is available
+      logger.info('Using test data for exception service', { paymentId, reason });
+      await mockDelay();
+      return { success: true, exceptionId: `exc_${Date.now()}` };
+    }
+
+    // TODO: Replace with actual exception service endpoint
     const url = `${config.exceptionServiceUrl}/api/v1/exceptions`;
     return apiClient.post(url, { paymentId, reason });
   },
@@ -149,10 +215,26 @@ export const exceptionService = {
 
 export const evidenceService = {
   getPresignedUrl: async (paymentId: string, filename: string) => {
+    if (config.useTestData) {
+      // TODO: Remove test data mock when real evidence service is available
+      logger.info('Using test data for evidence service (presigned URL)', { paymentId, filename });
+      await mockDelay();
+      return MOCK_PRESIGNED_URL_RESPONSE;
+    }
+
+    // TODO: Replace with actual evidence service endpoint
     const url = `${config.evidenceServiceUrl}/api/v1/evidence/presigned-url`;
     return apiClient.post(url, { paymentId, filename });
   },
   uploadMetadata: async (paymentId: string, metadata: unknown) => {
+    if (config.useTestData) {
+      // TODO: Remove test data mock when real evidence service is available
+      logger.info('Using test data for evidence service (metadata upload)', { paymentId });
+      await mockDelay();
+      return { success: true, evidenceId: `evid_${Date.now()}` };
+    }
+
+    // TODO: Replace with actual evidence service endpoint
     const url = `${config.evidenceServiceUrl}/api/v1/evidence/${paymentId}/metadata`;
     return apiClient.post(url, metadata);
   },
@@ -160,10 +242,21 @@ export const evidenceService = {
 
 export const telemetryService = {
   logEvent: async (event: unknown) => {
-    if (!config.telemetryServiceUrl) {
-      // If no telemetry service URL, skip (or use BigQuery directly)
+    if (config.useTestData) {
+      // TODO: Remove test data mock when real telemetry service is available
+      // In test mode, just log to console
+      logger.info('Telemetry event (test mode)', event as Record<string, unknown>);
       return;
     }
+
+    if (!config.telemetryServiceUrl) {
+      // TODO: Implement direct BigQuery insert if no HTTP service
+      // If no telemetry service URL, skip (or use BigQuery directly)
+      logger.warn('No telemetry service URL configured, event not sent');
+      return;
+    }
+
+    // TODO: Replace with actual telemetry service endpoint or BigQuery direct insert
     const url = `${config.telemetryServiceUrl}/api/v1/telemetry/events`;
     return apiClient.post(url, { events: [event] });
   },

@@ -51,15 +51,62 @@ export async function autofillForm(
     }
   }
 
-  // Emit notification
-  chrome.runtime.sendMessage({
-    type: 'NOTIFICATION',
-    notification: createNotification('AUTOFILL_COMPLETE', {
-      paymentId: payment.id,
-      portalId: template.portalId,
-      pageKey: template.pageKey,
-    }),
-  });
+  // Emit notification based on result
+  if (fieldsFilled > 0) {
+    chrome.runtime.sendMessage({
+      type: 'NOTIFICATION',
+      notification: createNotification('AUTOFILL_COMPLETE', {
+        paymentId: payment.id,
+        portalId: template.portalId,
+        pageKey: template.pageKey,
+      }),
+    });
+
+    // Telemetry
+    chrome.runtime.sendMessage({
+      type: 'TELEMETRY',
+      event: {
+        eventType: 'autofill_succeeded',
+        timestamp: new Date().toISOString(),
+        paymentId: payment.id,
+        portalId: template.portalId,
+        pageKey: template.pageKey,
+        metadata: {
+          fieldsFilled,
+          totalFields: template.fields.length,
+          errors: errors.length,
+        },
+      },
+    }).catch(() => {
+      // Ignore telemetry errors
+    });
+  } else {
+    chrome.runtime.sendMessage({
+      type: 'NOTIFICATION',
+      notification: createNotification('WARNING', {
+        messageKey: 'AUTOFILL_FAILED',
+        humanMessage: 'Autofill failed. Please fill form manually.',
+        paymentId: payment.id,
+        portalId: template.portalId,
+        pageKey: template.pageKey,
+      }),
+    });
+
+    // Telemetry
+    chrome.runtime.sendMessage({
+      type: 'TELEMETRY',
+      event: {
+        eventType: 'autofill_failed',
+        timestamp: new Date().toISOString(),
+        paymentId: payment.id,
+        portalId: template.portalId,
+        pageKey: template.pageKey,
+        metadata: { errors },
+      },
+    }).catch(() => {
+      // Ignore telemetry errors
+    });
+  }
 
   logger.info('Autofill completed', { fieldsFilled, errors: errors.length });
 
@@ -67,17 +114,35 @@ export async function autofillForm(
 }
 
 function fillField(element: HTMLInputElement, value: string): void {
-  // Set value
+  // TODO: Enhance field filling for different input types (select, textarea, etc.)
+  // TODO: Handle special cases like masked inputs, date pickers, etc.
+
+  // Set value directly (works for most input types)
   element.value = value;
 
-  // Trigger events
-  element.dispatchEvent(new Event('input', { bubbles: true }));
-  element.dispatchEvent(new Event('change', { bubbles: true }));
-  element.dispatchEvent(new Event('blur', { bubbles: true }));
+  // Trigger native events for React/Vue/Angular compatibility
+  // Input event (most frameworks listen to this)
+  element.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
 
-  // Focus and blur to ensure React/Vue bindings update
+  // Change event (for form validation)
+  element.dispatchEvent(new Event('change', { bubbles: true, cancelable: true }));
+
+  // Focus and blur to trigger any focus-based validation
   element.focus();
   element.blur();
+
+  // Additional events for maximum compatibility
+  element.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true }));
+  element.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true }));
+
+  // For React specifically, also trigger a synthetic event-like behavior
+  // by setting the value property directly (already done above)
+
+  // Wait a tick to ensure framework has processed the change
+  setTimeout(() => {
+    // Trigger one more change event after framework has had time to process
+    element.dispatchEvent(new Event('change', { bubbles: true }));
+  }, 0);
 }
 
 function getPaymentValue(

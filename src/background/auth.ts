@@ -3,6 +3,7 @@ import { apiClient } from '../shared/apiClient';
 import { logger } from '../shared/logger';
 import { TokenResponseSchema } from '../shared/schemas';
 import { telemetry } from './telemetry';
+import { MOCK_TOKEN_RESPONSE } from '../shared/testData';
 
 class AuthService {
   private accessToken: string | null = null;
@@ -11,6 +12,36 @@ class AuthService {
 
   async authenticate(): Promise<void> {
     try {
+      if (config.useTestData) {
+        // TODO: Remove test data mock when real auth service is available
+        logger.info('Using test data for authentication');
+        await new Promise((resolve) => setTimeout(resolve, 500)); // Simulate network delay
+
+        const data = TokenResponseSchema.parse(MOCK_TOKEN_RESPONSE);
+        this.accessToken = data.access_token;
+        this.refreshToken = data.refresh_token;
+        this.tokenExpiry = Date.now() + data.expires_in * 1000;
+
+        apiClient.setAccessToken(this.accessToken);
+
+        await chrome.storage.local.set({
+          refreshToken: this.refreshToken,
+          tokenExpiry: this.tokenExpiry,
+          operatorId: data.operator_id,
+        });
+
+        logger.info('Authentication successful (test mode)');
+
+        // Telemetry
+        await telemetry.logEvent({
+          eventType: 'auth_success',
+          timestamp: new Date().toISOString(),
+          operatorId: data.operator_id,
+        });
+        return;
+      }
+
+      // TODO: Replace with actual Chrome identity API OAuth flow
       // Use Chrome identity API for OAuth
       const token = await chrome.identity.getAuthToken({
         interactive: true,
@@ -20,6 +51,7 @@ class AuthService {
         throw new Error('Failed to get auth token');
       }
 
+      // TODO: Replace with actual auth service endpoint
       // Exchange Chrome token for backend token
       const response = await fetch(`${config.authServiceUrl}/api/v1/auth/exchange`, {
         method: 'POST',
@@ -92,6 +124,28 @@ class AuthService {
     }
 
     try {
+      if (config.useTestData) {
+        // TODO: Remove test data mock when real auth service is available
+        logger.info('Using test data for token refresh');
+        await new Promise((resolve) => setTimeout(resolve, 300)); // Simulate network delay
+
+        const data = TokenResponseSchema.parse(MOCK_TOKEN_RESPONSE);
+        this.accessToken = data.access_token;
+        this.refreshToken = data.refresh_token;
+        this.tokenExpiry = Date.now() + data.expires_in * 1000;
+
+        apiClient.setAccessToken(this.accessToken);
+
+        await chrome.storage.local.set({
+          refreshToken: this.refreshToken,
+          tokenExpiry: this.tokenExpiry,
+        });
+
+        logger.info('Token refreshed successfully (test mode)');
+        return;
+      }
+
+      // TODO: Replace with actual auth service refresh endpoint
       const response = await fetch(`${config.authServiceUrl}/api/v1/auth/refresh`, {
         method: 'POST',
         headers: {
