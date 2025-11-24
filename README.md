@@ -13,11 +13,17 @@ This extension helps payment operators execute queued payments faster by:
 
 ## Documentation
 
+### Planning Documents
 - **[ENGINEERING_PLAN.md](./ENGINEERING_PLAN.md)** - Complete engineering plan with architecture, task breakdown, risks, and test plan
 - **[EXTENSION_BLUEPRINT.md](./EXTENSION_BLUEPRINT.md)** - Detailed implementation blueprint for extension components
 - **[BACKEND_PLAN.md](./BACKEND_PLAN.md)** - Backend services build plan (Queue Passthrough, Portal Learning, Telemetry)
 - **[PULUMI_PLAN.md](./PULUMI_PLAN.md)** - Infrastructure as Code plan with Pulumi
+
+### Implementation Guides
+- **[REFINEMENT_PASS_2.md](./REFINEMENT_PASS_2.md)** - Second pass refinement: assumptions resolved, API contracts, state machines, risks, PR breakdown
+- **[PR_SEQUENCE.md](./PR_SEQUENCE.md)** - PR-ready task breakdown (PR0-PR10) with exact file lists and acceptance criteria
 - **[SCAFFOLDING_GUIDE.md](./SCAFFOLDING_GUIDE.md)** - Step-by-step guide to set up and start development
+- **[IMPLEMENTATION_SUMMARY.md](./IMPLEMENTATION_SUMMARY.md)** - Summary of all deliverables and code structure
 
 ## Quick Start
 

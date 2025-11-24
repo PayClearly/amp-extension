@@ -1,5 +1,6 @@
 import type { PortalDetectionResult } from '../shared/types';
 import { logger } from '../shared/logger';
+import { matchUrlPatterns } from '../shared/portalPatterns';
 
 export async function detectPortal(): Promise<PortalDetectionResult | null> {
   // 1. Check URL patterns
@@ -42,11 +43,7 @@ export async function detectPortal(): Promise<PortalDetectionResult | null> {
   return null;
 }
 
-function matchUrlPatterns(url: string): { portalId: string; pageKey: string } | null {
-  // TODO: Implement URL pattern matching
-  // For now, return null (will be implemented based on known portals)
-  return null;
-}
+// matchUrlPatterns is now imported from shared/portalPatterns
 
 function generateFingerprint(): string {
   // Stable landmarks: form IDs, button text, meta tags, title patterns

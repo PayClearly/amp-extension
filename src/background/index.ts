@@ -48,10 +48,22 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       break;
 
     case 'AUTH_REQUIRED':
-      auth.authenticate().then(() => {
-        sendResponse({ success: true });
+      auth
+        .authenticate()
+        .then(() => {
+          sendResponse({ success: true, authenticated: true });
+        })
+        .catch((error) => {
+          logger.error('Authentication error', error);
+          sendResponse({ success: false, authenticated: false, error: error.message });
+        });
+      return true; // Keep channel open for async
+
+    case 'CHECK_AUTH':
+      auth.isAuthenticated().then((isAuth) => {
+        sendResponse({ authenticated: isAuth });
       });
-      break;
+      return true; // Keep channel open for async
 
     default:
       logger.warn('Unknown message type', { type: message.type });

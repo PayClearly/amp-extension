@@ -1,5 +1,6 @@
 import { config } from './config';
 import { logger } from './logger';
+import { retryWithBackoff } from './retry';
 
 interface RequestOptions extends RequestInit {
   timeout?: number;
@@ -97,7 +98,17 @@ export const apiClient = new ApiClient();
 export const queueService = {
   getNextPayment: async (timeout = 30000) => {
     const url = `${config.queueServiceUrl}/api/v1/queue/next-payment?timeout=${Math.min(timeout / 1000, 60)}`;
-    return apiClient.get(url, { timeout });
+
+    // Retry with exponential backoff: 3 retries, 1s/2s/4s delays with ±20% jitter
+    return retryWithBackoff(
+      () => apiClient.get(url, { timeout }),
+      {
+        maxRetries: 3,
+        initialDelay: 1000,
+        maxDelay: 4000,
+        jitter: 0.2,
+      }
+    );
   },
 };
 

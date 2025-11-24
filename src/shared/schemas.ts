@@ -91,3 +91,10 @@ export const ConfirmationMetadataSchema = z.object({
   transactionId: z.string().nullable(),
 });
 
+export const TokenResponseSchema = z.object({
+  access_token: z.string(),
+  refresh_token: z.string(),
+  expires_in: z.number(),
+  operator_id: z.string().optional(),
+});
+

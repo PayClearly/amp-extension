@@ -1,12 +1,8 @@
 import { config } from '../shared/config';
 import { apiClient } from '../shared/apiClient';
 import { logger } from '../shared/logger';
-
-interface TokenResponse {
-  access_token: string;
-  refresh_token: string;
-  expires_in: number;
-}
+import { TokenResponseSchema } from '../shared/schemas';
+import { telemetry } from './telemetry';
 
 class AuthService {
   private accessToken: string | null = null;
@@ -37,7 +33,9 @@ class AuthService {
         throw new Error(`Auth exchange failed: ${response.statusText}`);
       }
 
-      const data = (await response.json()) as TokenResponse;
+      const rawData = await response.json();
+      const data = TokenResponseSchema.parse(rawData);
+
       this.accessToken = data.access_token;
       this.refreshToken = data.refresh_token;
       this.tokenExpiry = Date.now() + data.expires_in * 1000;
@@ -48,11 +46,29 @@ class AuthService {
       await chrome.storage.local.set({
         refreshToken: this.refreshToken,
         tokenExpiry: this.tokenExpiry,
+        operatorId: data.operator_id,
       });
 
       logger.info('Authentication successful');
+
+      // Telemetry
+      await telemetry.logEvent({
+        eventType: 'auth_success',
+        timestamp: new Date().toISOString(),
+        operatorId: data.operator_id,
+      });
     } catch (error) {
       logger.error('Authentication failed', error);
+
+      // Telemetry
+      await telemetry.logEvent({
+        eventType: 'auth_fail',
+        timestamp: new Date().toISOString(),
+        metadata: {
+          error: error instanceof Error ? error.message : String(error),
+        },
+      });
+
       throw error;
     }
   }
@@ -88,7 +104,9 @@ class AuthService {
         throw new Error(`Token refresh failed: ${response.statusText}`);
       }
 
-      const data = (await response.json()) as TokenResponse;
+      const rawData = await response.json();
+      const data = TokenResponseSchema.parse(rawData);
+
       this.accessToken = data.access_token;
       this.refreshToken = data.refresh_token;
       this.tokenExpiry = Date.now() + data.expires_in * 1000;

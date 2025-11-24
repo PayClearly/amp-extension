@@ -57,14 +57,26 @@ async function init(): Promise<void> {
 
   // Monitor for SPA navigation
   let lastUrl = window.location.href;
-  const checkNavigation = () => {
+  let navigationCheckTimeout: number | null = null;
+
+  const checkNavigation = (): void => {
     if (window.location.href !== lastUrl) {
       lastUrl = window.location.href;
       logger.info('Navigation detected', { url: lastUrl });
-      // Re-detect portal after navigation
-      setTimeout(() => {
+
+      // Reset portal detection state
+      portalDetected = false;
+      currentPortalId = null;
+
+      // Re-detect portal after navigation (debounced)
+      if (navigationCheckTimeout) {
+        clearTimeout(navigationCheckTimeout);
+      }
+      navigationCheckTimeout = window.setTimeout(() => {
         detectPortal().then((portal) => {
           if (portal) {
+            portalDetected = true;
+            currentPortalId = portal.portalId;
             chrome.runtime.sendMessage({
               type: 'PORTAL_DETECTED',
               portalId: portal.portalId,
@@ -77,10 +89,24 @@ async function init(): Promise<void> {
     }
   };
 
-  // Check for navigation every 2 seconds
+  // Intercept pushState and replaceState for SPA navigation
+  const originalPushState = history.pushState;
+  const originalReplaceState = history.replaceState;
+
+  history.pushState = function (...args) {
+    originalPushState.apply(history, args);
+    setTimeout(checkNavigation, 100);
+  };
+
+  history.replaceState = function (...args) {
+    originalReplaceState.apply(history, args);
+    setTimeout(checkNavigation, 100);
+  };
+
+  // Check for navigation every 2 seconds (fallback)
   setInterval(checkNavigation, 2000);
 
-  // Also listen for popstate (back/forward)
+  // Listen for popstate (back/forward)
   window.addEventListener('popstate', () => {
     setTimeout(checkNavigation, 500);
   });

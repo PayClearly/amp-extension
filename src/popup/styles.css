@@ -229,3 +229,17 @@ body {
   background-color: #07e;
 }
 
+.auth-prompt p {
+  margin-bottom: 16px;
+  color: #666;
+}
+
+.error-message {
+  padding: 8px;
+  margin-bottom: 12px;
+  background-color: #fee;
+  color: #800;
+  border-radius: 4px;
+  font-size: 12px;
+}
+

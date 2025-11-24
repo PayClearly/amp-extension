@@ -1,0 +1,99 @@
+/**
+ * Portal URL pattern matching
+ * Patterns are matched in order, first match wins
+ */
+
+export interface PortalPattern {
+  portalId: string;
+  patterns: Array<{
+    host: string | RegExp;
+    path?: string | RegExp;
+    pageKey?: string;
+  }>;
+}
+
+// Known portal patterns (can be extended or loaded from backend)
+const PORTAL_PATTERNS: PortalPattern[] = [
+  // Example patterns - replace with actual vendor portals
+  {
+    portalId: 'portal_example',
+    patterns: [
+      {
+        host: /portal\.example\.com$/i,
+        path: /\/payment/i,
+        pageKey: 'payment_form',
+      },
+      {
+        host: /portal\.example\.com$/i,
+        path: /\/confirm/i,
+        pageKey: 'confirmation',
+      },
+    ],
+  },
+];
+
+/**
+ * Match URL against portal patterns
+ */
+export function matchUrlPatterns(url: string): { portalId: string; pageKey: string } | null {
+  try {
+    const urlObj = new URL(url);
+
+    for (const portal of PORTAL_PATTERNS) {
+      for (const pattern of portal.patterns) {
+        // Match host
+        const hostMatch =
+          typeof pattern.host === 'string'
+            ? urlObj.hostname === pattern.host
+            : pattern.host.test(urlObj.hostname);
+
+        if (!hostMatch) {
+          continue;
+        }
+
+        // Match path (if specified)
+        if (pattern.path) {
+          const pathMatch =
+            typeof pattern.path === 'string'
+              ? urlObj.pathname === pattern.path
+              : pattern.path.test(urlObj.pathname);
+
+          if (!pathMatch) {
+            continue;
+          }
+        }
+
+        // Match found
+        return {
+          portalId: portal.portalId,
+          pageKey: pattern.pageKey || inferPageKeyFromUrl(url),
+        };
+      }
+    }
+  } catch (error) {
+    // Invalid URL
+    return null;
+  }
+
+  return null;
+}
+
+/**
+ * Infer page key from URL
+ */
+function inferPageKeyFromUrl(url: string): string {
+  const lower = url.toLowerCase();
+  if (lower.includes('login') || lower.includes('signin')) return 'login';
+  if (lower.includes('payment') || lower.includes('pay')) return 'payment_form';
+  if (lower.includes('confirm') || lower.includes('success')) return 'confirmation';
+  return 'default';
+}
+
+/**
+ * Load portal patterns from backend (future enhancement)
+ */
+export async function loadPortalPatterns(): Promise<PortalPattern[]> {
+  // TODO: Fetch from backend API
+  return PORTAL_PATTERNS;
+}
+

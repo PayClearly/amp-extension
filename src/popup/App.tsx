@@ -2,33 +2,59 @@ import React, { useEffect, useState } from 'react';
 import { Controls } from './components/Controls';
 import { PaymentSummary } from './components/PaymentSummary';
 import { Notifications } from './components/Notifications';
+import { AuthPrompt } from './components/AuthPrompt';
 import { useExtensionState } from './state/useExtensionState';
-import type { ExtensionNotification } from '../shared/types';
 
 export function App(): JSX.Element {
   const { state, payment, notifications } = useExtensionState();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null); // null = checking
 
   useEffect(() => {
     // Check authentication status
-    chrome.runtime.sendMessage({ type: 'CHECK_AUTH' }, (response) => {
-      setIsAuthenticated(response?.authenticated || false);
-    });
+    const checkAuth = (): void => {
+      chrome.runtime.sendMessage({ type: 'CHECK_AUTH' }, (response) => {
+        setIsAuthenticated(response?.authenticated || false);
+      });
+    };
+
+    checkAuth();
+
+    // Listen for auth state changes
+    const messageListener = (
+      message: { type: string; authenticated?: boolean },
+      _sender: unknown,
+      _sendResponse: unknown
+    ): void => {
+      if (message.type === 'AUTH_STATE_CHANGED' && message.authenticated !== undefined) {
+        setIsAuthenticated(message.authenticated);
+      }
+    };
+
+    chrome.runtime.onMessage.addListener(messageListener);
+
+    return () => {
+      chrome.runtime.onMessage.removeListener(messageListener);
+    };
   }, []);
+
+  if (isAuthenticated === null) {
+    return (
+      <div className="app">
+        <div className="auth-prompt">
+          <p>Checking authentication...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!isAuthenticated) {
     return (
       <div className="app">
-        <div className="auth-prompt">
-          <h2>Authentication Required</h2>
-          <button
-            onClick={() => {
-              chrome.runtime.sendMessage({ type: 'AUTH_REQUIRED' });
-            }}
-          >
-            Sign In
-          </button>
-        </div>
+        <AuthPrompt
+          onAuthSuccess={() => {
+            setIsAuthenticated(true);
+          }}
+        />
       </div>
     );
   }

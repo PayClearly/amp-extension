@@ -78,11 +78,19 @@ class StateMachine {
         await auth.authenticate();
       }
 
-      // Fetch next payment
+      // Fetch next payment with retry logic (handled in queueService)
       const response = await queueService.getNextPayment(30000);
+
+      // Handle 204 No Content (no payment available)
       if (!response || !response.payment) {
         // No payment available (long-poll timeout)
         await this.transition('IDLE');
+        this.emitNotification(
+          createNotification('AUTO_ACTION_COMPLETE', {
+            messageKey: 'NO_PAYMENT_AVAILABLE',
+            humanMessage: 'No payment available in queue.',
+          })
+        );
         return;
       }
 

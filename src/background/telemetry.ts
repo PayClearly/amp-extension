@@ -23,7 +23,15 @@ class TelemetryService {
     }
 
     // Also log to console in development
-    logger.debug('Telemetry event', event);
+    logger.debug('Telemetry event', {
+      eventType: event.eventType,
+      timestamp: event.timestamp,
+      operatorId: event.operatorId,
+      paymentId: event.paymentId,
+      portalId: event.portalId,
+      pageKey: event.pageKey,
+      metadata: event.metadata,
+    });
   }
 
   private async flush(): Promise<void> {
