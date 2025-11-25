@@ -2,6 +2,13 @@
 
 Internal Chrome Extension (Manifest V3) for accelerating concierge AP portal payments.
 
+## Quick Links
+
+- **[Testing Guide](./TESTING_README.md)** - How to test the extension in your browser
+- **[Remaining Work Plan](./REMAINING_WORK_PLAN.md)** - What's left to implement for production
+- **[Quick Start](./QUICK_START.md)** - Get started quickly
+- **[Testing Instructions](./TESTING_INSTRUCTIONS.md)** - Detailed testing workflow
+
 ## Overview
 
 This extension helps payment operators execute queued payments faster by:
