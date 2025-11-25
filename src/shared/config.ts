@@ -21,5 +21,7 @@ export const config = {
   ),
   // Obfuscation
   obfuscationEnabled: true, // Can be toggled via operator preference
+  // GCS Configuration
+  gcsBucket: 'payclearly-32f4e-storage-backup',
 };
 

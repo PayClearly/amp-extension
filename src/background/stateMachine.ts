@@ -302,14 +302,15 @@ class StateMachine {
     this.emitNotification(createNotification('CAPTURING_EVIDENCE'));
 
     try {
-      // Capture payment ID before clearing state
+      // Capture payment ID and payment object before clearing state
       const paymentId = this.context.payment?.id;
-      if (!paymentId) {
-        throw new Error('No payment ID available');
+      const payment = this.context.payment;
+      if (!paymentId || !payment) {
+        throw new Error('No payment ID or payment data available');
       }
 
       // Capture screenshot and upload evidence
-      await evidence.captureAndUpload(paymentId, metadata);
+      await evidence.captureAndUpload(paymentId, metadata, payment);
 
       this.context.timestamps.paymentCompletedAt = new Date().toISOString();
 

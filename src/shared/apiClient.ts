@@ -5,8 +5,6 @@ import type { Payment, PortalTemplate } from './types';
 import {
   MOCK_PAYMENT_RESPONSE,
   MOCK_PORTAL_TEMPLATE,
-  MOCK_TOKEN_RESPONSE,
-  MOCK_PRESIGNED_URL_RESPONSE,
   mockDelay,
 } from './testData';
 
@@ -226,22 +224,43 @@ export const exceptionService = {
 
     // TODO: Replace with actual exception service endpoint
     const url = `${config.exceptionServiceUrl}/api/v1/exceptions`;
-    return apiClient.post(url, { paymentId, reason });
+    return apiClient.post<{ success: boolean; exceptionId?: string }>(url, {
+      paymentId,
+      reason,
+    });
   },
 };
 
 export const evidenceService = {
-  getPresignedUrl: async (paymentId: string, filename: string): Promise<PresignedUrlResponse> => {
+  getPresignedUrl: async (
+    paymentId: string,
+    gcsPath: string,
+    hashedFilename: string
+  ): Promise<PresignedUrlResponse> => {
     if (config.useTestData) {
       // TODO: Remove test data mock when real evidence service is available
-      logger.info('Using test data for evidence service (presigned URL)', { paymentId, filename });
+      logger.info('Using test data for evidence service (presigned URL)', {
+        paymentId,
+        gcsPath,
+        hashedFilename,
+      });
       await mockDelay();
-      return MOCK_PRESIGNED_URL_RESPONSE;
+      // Return mock URL with correct bucket and path structure
+      return {
+        url: `https://storage.googleapis.com/${config.gcsBucket}/${gcsPath}?X-Goog-Algorithm=GOOG4-RSA-SHA256&X-Goog-Credential=test`,
+        expiresAt: new Date(Date.now() + 3600000).toISOString(), // 1 hour from now
+      };
     }
 
     // TODO: Replace with actual evidence service endpoint
+    // Backend should generate presigned URL for: gs://payclearly-32f4e-storage-backup/{gcsPath}
     const url = `${config.evidenceServiceUrl}/api/v1/evidence/presigned-url`;
-    return apiClient.post<PresignedUrlResponse>(url, { paymentId, filename });
+    return apiClient.post<PresignedUrlResponse>(url, {
+      paymentId,
+      gcsPath,
+      hashedFilename,
+      bucket: config.gcsBucket,
+    });
   },
   uploadMetadata: async (paymentId: string, metadata: unknown): Promise<{ success: boolean; evidenceId?: string }> => {
     if (config.useTestData) {

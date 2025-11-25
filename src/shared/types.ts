@@ -17,6 +17,30 @@ export interface Payment {
     routingNumber?: string;
   };
   metadata: Record<string, unknown>;
+  // Extended payment data structure
+  paymentFields?: Record<string, string>;
+  cards?: Array<{
+    cardNumber: string;
+    expirationMonth: string;
+    expirationYear: string;
+    cvv: string;
+    type: string;
+    amount: number;
+    cardFee: number;
+  }>;
+  credentialFields?: Record<string, string>;
+  accountMetadata?: {
+    accountName?: string;
+    contactName?: string;
+    contactEmail?: string;
+    contactPhone?: string;
+    address?: {
+      city?: string;
+      stateProvince?: string;
+      streetAddress?: string;
+      zipCode?: string;
+    };
+  };
 }
 
 export interface PortalTemplate {

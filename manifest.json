@@ -10,6 +10,9 @@
     "scripting",
     "identity"
   ],
+  "optional_permissions": [
+    "desktopCapture"
+  ],
   "host_permissions": [
     "https://*.payclearly.com/*",
     "https://*.payclearly.internal/*",

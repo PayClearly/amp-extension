@@ -4,6 +4,7 @@ import { autofillForm } from './autofill';
 import { startLearningMode, submitLearning } from './learning';
 import { obfuscateSensitiveFields, restoreAllObfuscatedFields } from './obfuscate';
 import { detectConfirmation, scrapeConfirmationMetadata } from './scrape';
+import { initSmartAutofill } from './smartAutofill';
 import { logger } from '../shared/logger';
 import type { Payment, PortalTemplate } from '../shared/types';
 
@@ -38,10 +39,25 @@ async function init(): Promise<void> {
     // Obfuscate sensitive fields
     obfuscateSensitiveFields();
 
-    // Wait for form to be ready
+    // Wait for form to be ready, then check if we should enable smart autofill
     setTimeout(() => {
       detectFormFields().then((fields) => {
         logger.debug('Form fields detected', { count: fields.length });
+      });
+
+      // Check if we're in learning mode (no template) and have payment data
+      chrome.storage.session.get('stateContext', (result) => {
+        const stateContext = result.stateContext;
+        if (stateContext?.state === 'LEARNING' || stateContext?.state === 'ACTIVE') {
+          const payment = stateContext.payment as Payment | null;
+          const template = stateContext.template as PortalTemplate | null;
+
+          // Enable smart autofill if no template exists
+          if (payment && !template) {
+            logger.info('No template found, enabling smart autofill');
+            initSmartAutofill(payment);
+          }
+        }
       });
     }, 500);
   }
@@ -173,6 +189,15 @@ async function handleMessage(message: unknown): Promise<void> {
     case 'START_LEARNING':
       startLearningMode();
       logger.info('Learning mode started via message');
+
+      // Enable smart autofill when learning mode starts
+      chrome.storage.session.get('stateContext', (result) => {
+        const stateContext = result.stateContext;
+        if (stateContext?.payment) {
+          const payment = stateContext.payment as Payment;
+          initSmartAutofill(payment);
+        }
+      });
       break;
 
     case 'SUBMIT_LEARNING':
