@@ -184,7 +184,14 @@ export const portalLearningService = {
     }
 
     // TODO: Replace with actual portal learning service endpoint
-    const url = `${config.portalLearningServiceUrl}/api/v1/portals/templates?portalId=${portalId}&accountId=${accountId}&clientId=${clientId}&vendorId=${vendorId}&pageKey=${pageKey}`;
+    const url = [
+      `${config.portalLearningServiceUrl}/api/v1/portals/templates?`,
+      `portalId=${portalId}&`,
+      `accountId=${accountId}&`,
+      `clientId=${clientId}&`,
+      `vendorId=${vendorId}&`,
+      `pageKey=${pageKey}`
+    ].join('');
     return apiClient.get<PortalTemplateResponse | null>(url);
   },
   createTemplate: async (template: unknown): Promise<PortalTemplateResponse> => {
@@ -199,7 +206,12 @@ export const portalLearningService = {
     const url = `${config.portalLearningServiceUrl}/api/v1/portals/templates`;
     return apiClient.post<PortalTemplateResponse>(url, template);
   },
-  updateUsage: async (templateId: string, success: boolean, fieldsFilled: number, totalFields: number): Promise<{ success: boolean }> => {
+  updateUsage: async (
+    templateId: string,
+    success: boolean,
+    fieldsFilled: number,
+    totalFields: number
+  ): Promise<{ success: boolean }> => {
     if (config.useTestData) {
       // TODO: Remove test data mock when real portal learning service is available
       logger.info('Using test data for template usage update', { templateId, success });
